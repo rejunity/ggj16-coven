@@ -161,7 +161,8 @@ public class Game : MonoBehaviour {
 		}
 	}
 
-	public float scheduleNextPlayer = 0;
+	private float scheduleNextPlayer = 0;
+	private bool firstTurn = false;
 	void Update ()
 	{
 		if (mode == -1)
@@ -201,13 +202,19 @@ public class Game : MonoBehaviour {
 
 		if (mode == 0) // draft
 		{
+			firstTurn = (currentPlayer == 0);
 			discard.Visible = false;
 			draft.Visible = true;
 			pool.Visible = false;
 
+			// Auto pick last card from booster and continue drafting from the new booster
+			// RULE - Player A begins draft (picks first card from first booster).
+			// When second BOOSTER opens, player B picks first (not player A again)
+			if (draft.Count == 1 && scheduleNextPlayer <= 0)
+				MoveCards (draft, 1, deck);
+
 			if (draft.Count == 0 && discard.Count > 0)
 			{
-				//draft.CreateCards (boosterSize);
 				MoveMatchingCards (discard, 4, 0, draft);
 				MoveMatchingCards (discard, 3, 1, draft);
 				MoveMatchingCards (discard, 2, 2, draft);
@@ -215,7 +222,7 @@ public class Game : MonoBehaviour {
 				MoveCards (discard, 4+3+2+1 - draft.Count, draft);
 				draft.Shuffle ();
 			}
-			
+
 			if (deck.Count == fullDeckSize)
 			{
 				deck.Shuffle ();
@@ -238,8 +245,10 @@ public class Game : MonoBehaviour {
 			}
 			else
 			{
-				if (hand.Count < maxHandSize)
+				// RULE: - Player who plays first does not draw the 6th card (starts with 5)
+				if (!firstTurn && hand.Count < maxHandSize)
 					MoveCards (deck, 1, hand);
+				firstTurn = false;
 
 				MoveCards (ingridients, poolSize - pool.Count, pool);
 
@@ -266,7 +275,6 @@ public class Game : MonoBehaviour {
 		}
 		else if (mode == 3) // end turn
 		{
-			//MoveCards (deck, openingHandSize, hand);
 			endTurnButton.gameObject.SetActive (false);
 			endTurnButton.interactable = false;
 
