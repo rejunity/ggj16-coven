@@ -1,4 +1,4 @@
-﻿Shader "Custom/NewSurfaceShader" {
+﻿Shader "Coven/Card" {
 	Properties {
 		_Color ("Color", Color) = (1,1,1,1)
 		_MainTex ("Albedo (RGB)", 2D) = "white" {}
