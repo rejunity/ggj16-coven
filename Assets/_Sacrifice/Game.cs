@@ -427,11 +427,11 @@ public class Game : MonoBehaviour {
 				if (colorBonus)
 					result += 1;
 				result += r.desc.power;
+				result += c.desc.power * specialMultiplier;
 			}
 
 			c.DiscardSubDeck (discard);
 			c.Deck = ingridients;
-			result += c.desc.power * specialMultiplier;
 		}
 
 		if (specialOnlyOneRite > 0)
