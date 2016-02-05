@@ -163,6 +163,7 @@ public class Game : MonoBehaviour {
 
 	private float scheduleNextPlayer = 0;
 	private bool firstTurn = false;
+	private int passedTurns = 0;
 	void Update ()
 	{
 		if (mode == -1)
@@ -249,6 +250,13 @@ public class Game : MonoBehaviour {
 				if (!firstTurn && hand.Count < maxHandSize)
 					MoveCards (deck, 1, hand);
 				firstTurn = false;
+
+				// RULE: - When all players Pass turn and do not play any Rite cards, discard current ingridients and replace them
+				if (passedTurns == playerCount)
+				{
+					MoveCards (pool, poolSize, ingridients);
+					passedTurns = 0;
+				}
 
 				MoveCards (ingridients, poolSize - pool.Count, pool);
 
@@ -444,6 +452,11 @@ public class Game : MonoBehaviour {
 
 		if (specialOnlyOneRite > 0)
 			specialOnlyOneRite--;
+
+		if (result == 0) // no rites were played
+			passedTurns++;
+		else
+			passedTurns = 0;
 
 		PlayAction ("");
 		return result;
