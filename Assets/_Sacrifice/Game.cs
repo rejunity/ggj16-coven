@@ -190,7 +190,7 @@ public class Game : MonoBehaviour {
 		if (mode == Mode.Prepare)
 			infoText.text = "Prepare for Rituals! Player " + (currentPlayer+1).ToString();
 		else if (mode == Mode.GameOver)
-			infoText.text = "Player " + (TopPlayer+1).ToString() + " won!!!";
+			infoText.text = "Player " + (TopPlayer+1).ToString() + " Won!";
 		else if (specialReplace > 0)
 			infoText.text = "Replace " + specialReplace + " more ingridient" + ((specialReplace>1)?"s":"");
 		else if (specialDiscard > 0)
@@ -209,7 +209,7 @@ public class Game : MonoBehaviour {
 
 		if (mode == Mode.Draft) // draft
 		{
-			firstTurn = (currentPlayer == 0);
+			firstTurn = true;
 			discard.Visible = false;
 			draft.Visible = true;
 			pool.Visible = false;
@@ -241,15 +241,15 @@ public class Game : MonoBehaviour {
 
 			EndDraft ();
 
-			scheduleNextPlayer = 2.0f;
+			// do not switch players, if new booster was opened
+			bool switchPlayers = discard.Count != 0 && draft.Count != 0 && draft.Count != boosterSize;
+			if (switchPlayers)
+				scheduleNextPlayer = 2.0f;
 			mode = Mode.Prepare;
 		}
 		else if (mode == Mode.Prepare && (scheduleNextPlayer <= 0))
 		{
-			// do not switch players, if last card from booster was drafted
-			// bool switchPlayers = draft.Count != 0;
-			// if (switchPlayers)
-			//	scheduleNextPlayer = 2.0f;
+			pool.Visible = true;
 			mode = Mode.BeginTurn;
 		}
 		else if (mode == Mode.BeginTurn && (scheduleNextPlayer <= 0)) // begin turn
@@ -326,7 +326,6 @@ public class Game : MonoBehaviour {
 			scheduleNextPlayer -= Time.deltaTime;
 			if (scheduleNextPlayer <= 0)
 			{
-				pool.Visible = true;
 				NextPlayer ();
 				scheduleNextPlayer = 0;
 			}
