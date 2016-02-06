@@ -145,7 +145,10 @@ public class Game : MonoBehaviour {
 	private void MoveCards (Deck from, int drawSize, Deck to)
 	{
 		for (int q = 0; q < drawSize && from.Count > 0; ++q)
+		{
+			from.Top.multiplier = 1; // always reset multiplier when moving cards between decks
 			from.Top.Deck = to;
+		}
 	}
 
 	private void MoveMatchingCards (Deck from, int drawSize, int rarity, Deck to)
@@ -195,6 +198,8 @@ public class Game : MonoBehaviour {
 			infoText.text = "Replace " + specialReplace + " more ingridient" + ((specialReplace>1)?"s":"");
 		else if (specialDiscard > 0)
 			infoText.text = "Discard " + specialDiscard + " more rites" + ((specialDiscard>1)?"s":"") + " to continue";
+		else if (specialMultiplier > 0)
+			infoText.text = "Choose ingredient to double its power";
 		else
 			infoText.text = "Player " + (currentPlayer+1).ToString();
 		if (hand.Selected)
@@ -374,7 +379,7 @@ public class Game : MonoBehaviour {
 		}
 		else if (mode == Mode.Turn) // game
 		{
-			if (fromDeck == hand)
+			if (fromDeck == hand && specialMultiplier == 0) // NO ACTION: 'specialMultiplier'
 			{
 				if (fromDeck.Selected == card)
 					fromDeck.Selected = null;
@@ -389,6 +394,13 @@ public class Game : MonoBehaviour {
 			}
 			else if (fromDeck == pool)
 			{
+				if (specialMultiplier > 0) // ACTION: 'specialMultiplier'
+				{
+					card.multiplier++;
+					pool.UpdateCards();
+					--specialMultiplier;
+				}
+
 				bool rarityMatches = hand.Selected && hand.Selected.desc.rarity == card.desc.rarity;
 				bool colorMatches = hand.Selected && (hand.Selected.desc.color == card.desc.color || hand.Selected.desc.color == -1 || card.desc.color == -1);
 				int ritesInThePool = 0;
@@ -462,7 +474,7 @@ public class Game : MonoBehaviour {
 				if (colorBonus)
 					result += 1;
 				result += r.desc.power;
-				result += c.desc.power * specialMultiplier;
+				result += c.desc.power * (int)Mathf.Pow(2.0f, c.multiplier-1);
 			}
 
 			c.DiscardSubDeck (discard);
@@ -489,7 +501,7 @@ public class Game : MonoBehaviour {
 	[SerializeField]
 	private int specialReplace = 0;
 	[SerializeField]
-	private int specialMultiplier = 1;
+	private int specialMultiplier = 0;
 	[SerializeField]
 	private int specialDiscard = 0;
 
@@ -498,7 +510,7 @@ public class Game : MonoBehaviour {
 		specialAnyRite = false;
 		// specialOnlyOneRite is decremented in EndTurn ()
 		specialReplace = 0;
-		specialMultiplier = 1;
+		specialMultiplier = 0;
 		specialDiscard = 0;
 		if (action == "draw1")
 		{
@@ -532,9 +544,9 @@ public class Game : MonoBehaviour {
 		{
 			specialReplace = 99;
 		}
-		else if (action == "ingredientPowerX2")
+		else if (action == "x2")
 		{
-			specialMultiplier = 2;
+			specialMultiplier = 1;
 		}
 		else if (action == "discard1")
 		{

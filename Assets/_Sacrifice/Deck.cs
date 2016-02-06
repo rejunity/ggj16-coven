@@ -165,6 +165,8 @@ using System;
                     targetLocalPosition -= Vector3.forward * 0.5f;
                 }
 
+                targetLocalScale += targetLocalScale * (0.1f * (card.multiplier-1));
+
 #if NGUI
                 TweenPosition.Begin(card.gameObject, 0.25f, targetLocalPosition);
                 TweenSize.Begin(card.gameObject, 0.25f, targetLocalScale);

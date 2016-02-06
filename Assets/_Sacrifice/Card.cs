@@ -17,6 +17,7 @@ using System.Linq;
     public class Card : MonoBehaviour
     {
         public CardDesc desc;
+        public int multiplier = 1;
 
         private Deck deck;
         public Deck Deck
