@@ -5,13 +5,20 @@ using System.Collections.Generic;
 
 public class Game : MonoBehaviour {
 
+	public enum Mode
+	{
+		TitleScreen,
+		Draft, EndDraft, Prepare,
+		BeginTurn, Turn, EndTurn,
+		GameOver
+	};
 	struct Player
 	{
 		public void Reset () { score = 0; mode = 0; }
 		public Deck deck;
 		public Deck hand;
 		public int score;
-		public int mode;
+		public Mode mode;
 		//public int currentMode; public int pendingMode;
 	};
 	private Player[] players;
@@ -80,7 +87,7 @@ public class Game : MonoBehaviour {
 	public Deck hand { get { return players[currentPlayer].hand; }}
 	public int score { get { return players[currentPlayer].score; } set { players[currentPlayer].score = value; } }
 	//public int mode { get { return players[currentPlayer].currentMode; } set { players[currentPlayer].pendingMode = value; } }
-	public int mode { get { return players[currentPlayer].mode; } set { players[currentPlayer].mode = value; } }
+	public Mode mode { get { return players[currentPlayer].mode; } set { players[currentPlayer].mode = value; } }
 	public Deck ingridients;
 	public Deck pool;
 	public Deck discard;
@@ -132,7 +139,7 @@ public class Game : MonoBehaviour {
 			NextPlayer ();
 		}
 		currentPlayer = 0;
-		mode = -1;
+		mode = Mode.TitleScreen;
 	}
 
 	private void MoveCards (Deck from, int drawSize, Deck to)
@@ -166,42 +173,41 @@ public class Game : MonoBehaviour {
 	private int passedTurns = 0;
 	void Update ()
 	{
-		if (mode == -1)
+		if (mode == Mode.TitleScreen)
 		{
 			if (Input.GetKey("space") || Input.GetMouseButton(0))
 			{
 				if (background)
 					background.material.mainTexture = bgTexture;
-				mode = 0;
+				mode = Mode.Draft;
 			}
 
 			return;
 		}
 
-		if (scheduleNextPlayer <= 0)
-		{
-			if (mode == 0)
-				infoText.text = "Draft! Player " + (currentPlayer+1).ToString();
-			else if (mode == 5)
-				infoText.text = "Player " + (TopPlayer+1).ToString() + " won!!!";
-			else if (specialReplace > 0)
-				infoText.text = "Replace " + specialReplace + " more ingridient" + ((specialReplace>1)?"s":"");
-			else if (specialDiscard > 0)
-				infoText.text = "Discard " + specialDiscard + " more rites" + ((specialDiscard>1)?"s":"") + " to continue";
-			else
-				infoText.text = "Player " + (currentPlayer+1).ToString();
-			if (hand.Selected)
-				infoText.text = "";
-		}
+		if (mode == Mode.Draft)
+			infoText.text = "Draft! Player " + (currentPlayer+1).ToString();
+		if (mode == Mode.Prepare)
+			infoText.text = "Prepare for Rituals! Player " + (currentPlayer+1).ToString();
+		else if (mode == Mode.GameOver)
+			infoText.text = "Player " + (TopPlayer+1).ToString() + " won!!!";
+		else if (specialReplace > 0)
+			infoText.text = "Replace " + specialReplace + " more ingridient" + ((specialReplace>1)?"s":"");
+		else if (specialDiscard > 0)
+			infoText.text = "Discard " + specialDiscard + " more rites" + ((specialDiscard>1)?"s":"") + " to continue";
+		else
+			infoText.text = "Player " + (currentPlayer+1).ToString();
+		if (hand.Selected)
+			infoText.text = "";
 
 		if (scheduleNextPlayer <= 0)
 		{
 			scoreText.text = score.ToString();
-			if (mode == 0)
+			if ((int)mode < (int)Mode.BeginTurn)
 				scoreText.text = "";
 		}
 
-		if (mode == 0) // draft
+		if (mode == Mode.Draft) // draft
 		{
 			firstTurn = (currentPlayer == 0);
 			discard.Visible = false;
@@ -225,24 +231,33 @@ public class Game : MonoBehaviour {
 			}
 
 			if (deck.Count == fullDeckSize)
-			{
-				deck.Shuffle ();
-				MoveCards (deck, openingHandSize, hand);
-				MoveCards (ingridients, poolSize - pool.Count, pool);
-
-				EndDraft ();
-				infoText.text = "Prepare for Rituals! Player " + (currentPlayer+1).ToString();
-
-				scheduleNextPlayer = 2.0f;
-				mode = 1;
-			}
+				mode = Mode.EndDraft;
 		}
-		else if (mode == 1 && (scheduleNextPlayer <= 0)) // begin turn
+		else if (mode == Mode.EndDraft)
+		{
+			deck.Shuffle ();
+			MoveCards (deck, openingHandSize, hand);
+			MoveCards (ingridients, poolSize - pool.Count, pool);
+
+			EndDraft ();
+
+			scheduleNextPlayer = 2.0f;
+			mode = Mode.Prepare;
+		}
+		else if (mode == Mode.Prepare && (scheduleNextPlayer <= 0))
+		{
+			// do not switch players, if last card from booster was drafted
+			// bool switchPlayers = draft.Count != 0;
+			// if (switchPlayers)
+			//	scheduleNextPlayer = 2.0f;
+			mode = Mode.BeginTurn;
+		}
+		else if (mode == Mode.BeginTurn && (scheduleNextPlayer <= 0)) // begin turn
 		{
 			if (deck.Count == 0)
 			{
 				//score -= maxScore; // out of cards, you lost
-				mode = 5; // game over
+				mode = Mode.GameOver; // game over
 			}
 			else
 			{
@@ -263,10 +278,10 @@ public class Game : MonoBehaviour {
 				endTurnButton.gameObject.SetActive (true);
 				endTurnButton.interactable = true;
 
-				mode = 2;
+				mode = Mode.Turn;
 			}
 		}
-		else if (mode == 2) // turn
+		else if (mode == Mode.Turn) // turn
 		{
 			if (specialDiscard > 0) // ACTION: discard
 				endTurnButton.interactable = false;
@@ -279,9 +294,9 @@ public class Game : MonoBehaviour {
 			}
 			
 			if (hand.Count == 0)
-				mode = 3;
+				mode = Mode.EndTurn;
 		}
-		else if (mode == 3) // end turn
+		else if (mode == Mode.EndTurn) // end turn
 		{
 			endTurnButton.gameObject.SetActive (false);
 			endTurnButton.interactable = false;
@@ -291,12 +306,17 @@ public class Game : MonoBehaviour {
 			scoreText.text = "+" + turnScore.ToString() + " = " + score.ToString();
 
 			if (score >= maxScore)
-				mode = 5; // game over, you won!
+			{
+				mode = Mode.GameOver; // game over, you won!
+				NextPlayer ();
+			}
 			else
-				mode = 1;
-			scheduleNextPlayer = 1.0f;
+			{
+				mode = Mode.BeginTurn;
+				scheduleNextPlayer = 1.0f;
+			}
 		}
-		else if (mode == 5) // game over!
+		else if (mode == Mode.GameOver) // game over!
 		{
 			MoveCards (pool, pool.Count, ingridients);
 		}
@@ -316,19 +336,19 @@ public class Game : MonoBehaviour {
 
 	public void OnEndTurnRequest ()
 	{
-		if (mode == 2) // turn
+		if (mode == Mode.Turn) // turn
 		{
 			if (specialDiscard <= 0) // ACTION: discard
 			{
 				hand.Selected = null;
-				mode = 3;
+				mode = Mode.EndTurn;
 			}
 		}
 	}
 
 	public void OnMouseEnter (Card card, Deck fromDeck)
 	{
-		if (mode == 0) // draft
+		if (mode == Mode.Draft) // draft
 			if (fromDeck == draft)
 				card.Deck.Selected = card;
 	}
@@ -343,7 +363,7 @@ public class Game : MonoBehaviour {
 		if (scheduleNextPlayer > 0)
 			return;
 
-		if (mode == 0) // draft
+		if (mode == Mode.Draft) // draft
 		{
 			card.Deck.Selected = null;
 			if (fromDeck == draft)
@@ -353,7 +373,7 @@ public class Game : MonoBehaviour {
 				scheduleNextPlayer = .33f;
 			}
 		}
-		else if (mode == 2) // game
+		else if (mode == Mode.Turn) // game
 		{
 			if (fromDeck == hand)
 			{
