@@ -14,7 +14,7 @@ public class MakeBuilds : Editor {
 	[MenuItem("Coven/Build All Platforms")]
 	static public void BuildAllPlatforms ()
 	{
-		string[] levels = {}; // current level
+		string[] levels = { "Assets/_Sacrifice.unity" };
 	
 		NamedTarget[] targets = new NamedTarget[] {
 			new NamedTarget { build=BuildTarget.WebPlayer,			name="WebPlayer" } ,
